@@ -5,20 +5,34 @@ import { LEDMode } from './LEDMode';
 
 interface IProps {
     stations: number;
-    states: {[station: number]: StationProps};
+    
 }
 
-class RouteStrip extends React.Component<IProps> {
+interface State {
+  stationStates: {[station: number]: StationProps};
+}
+
+class RouteStrip extends React.Component<IProps, State> {
 
   constructor(props: IProps) {
     super(props);
     this.parseCommands = this.parseCommands.bind(this);
     this.handleCommand = this.handleCommand.bind(this);
 
+    let stationStates = {};
+    for (let i = 0; i < this.props.stations; i++) {
+      stationStates[i] = {
+          stationName: 'Station',
+          opacity: 0
+      };
+    }
+    this.state = {stationStates};
+
     this.parseCommands('!1,1,255,128;$');
   }
 
   public parseCommands(command: string) {
+    console.log('Received command string '+ command);
     let cmdString = /^!(.*)\$$/.exec(command)![1];
     let cmdArray = cmdString.split(';');
     cmdArray.forEach(this.handleCommand);
@@ -40,20 +54,22 @@ class RouteStrip extends React.Component<IProps> {
 
     const stationProps: StationProps = {
       colour: '#'+colour.toString(16).padStart(6, '0'),
-      opacity: type == 0 ? 0 : percent/255.0,
+      opacity: (type == 0) ? 0 : percent/255.0,
       mode: mode,
-      stationName: 'Test Station'
+      stationName: type == 2 ? 'FLASHING' : 'Test Station'
     };
     // debugger;
     console.log(stationProps);
     
 
-    this.props.states[led] = stationProps;
+    this.setState({stationStates: 
+      {...this.state.stationStates, [led]: stationProps, }});
+    // this.props.states[led] = stationProps;
   }
 
   private makeRow(i: number) {
-    let config = this.props.states[i] as StationProps || {};
-    return <StationRow {...config}></StationRow>;
+    let config = this.state.stationStates[i];
+    return <StationRow key={i} {...config}></StationRow>;
   }
 
   public render() {
