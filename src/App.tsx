@@ -1,32 +1,49 @@
 import * as React from 'react';
-import * as Socket from 'socket.io-client';
 
 import RouteStrip from './RouteStrip';
+import { IProps } from './StationRow';
 
 class App extends React.Component {
-  private io: SocketIOClient.Socket;
   routeStrip: React.RefObject<RouteStrip>;
+  socket: WebSocket;
+  fileReader: FileReader;
 
-  // private socket: SocketIOClient.Socket;
 
   constructor() {
     super({});
 
     this.routeStrip = React.createRef();
 
-    this.io = Socket('http://localhost:8765');
-    this.io.on('update', this.onMessage.bind(this));
+    this.socket = new WebSocket('ws://localhost:8765');
+    this.socket.addEventListener('message', this.decodeMessage.bind(this));
+
+    this.fileReader = new FileReader();
+    this.fileReader.addEventListener('loadend', this.handleMessage.bind(this))
   }
 
-  public onMessage(message: string) {
-    console.log("Received message: " + message);
-    this.routeStrip.current!.parseCommands(message);
+  private handleMessage(ev: ProgressEvent) {
+    // @ts-ignore
+    this.routeStrip.current!.parseCommands(this.fileReader.result); 
+    this.forceUpdate();
+  }
+
+  public decodeMessage(message: MessageEvent) {
+    console.log("Received message: " + message.data);
+    this.fileReader.readAsText(message.data);
   }
 
   public render() {
+    const states = {};
+    const numStations = 10;
+    for (let i = 0; i < numStations; i++) {
+      states[i] = {
+        stationName: 'Station',
+        opacity: 0
+      } as IProps;
+    }
     return (
       <div className="App">
-            <RouteStrip ref={this.routeStrip} stations={10} states={{}}></RouteStrip>
+            <RouteStrip ref={this.routeStrip} stations={50}></RouteStrip>
       </div>
     );
   }
